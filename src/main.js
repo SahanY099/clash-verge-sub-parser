@@ -21,47 +21,63 @@ function buildExcludeProxyTypeArray() {
   return excludeTypes;
 }
 
-const hashHandlers = [
+const buildHash = (...parts) =>
+  parts.filter(v => v !== undefined && v !== null).join(" + ");
+
+const proxySettings = [
+  {
+    type: "general",
+    filterConditions: (proxy) =>
+      typeof proxy.name === "string" &&
+      !proxy.name.includes("HK") &&
+      !unwantedProxyTypes.includes(proxy.type) &&
+      Number.isInteger(proxy.port) &&
+      proxy["skip-cert-verify"] === true
+  },
   {
     type: "trojan",
-    calculate: (proxy) => [
+    calculateHash: (proxy) => buildHash(
       proxy.server,
       proxy.port,
       proxy.password,
       proxy.udp && "udp",
       proxy.network || "tcp"
-    ].filter(Boolean).join(" + ")
+    )
   },
   {
     type: "vless",
-    calculate: (proxy) => [
+    filterConditions: (proxy) => proxy.tls,
+    calculateHash: (proxy) => buildHash(
       proxy.server,
       proxy.port,
       proxy.udp && "udp",
       proxy.uuid,
       proxy.network || "tcp"
-    ].filter(Boolean).join(" + ")
+    )
   },
   {
     type: "vmess",
-    calculate: (proxy) => [
+    filterConditions: (proxy) =>
+      proxy.uuid && proxy.uuid.length === 36 &&
+      proxy.tls,
+    calculateHash: (proxy) => buildHash(
       proxy.server,
       proxy.port,
       proxy.udp && "udp",
       proxy.uuid,
       proxy.network || "tcp"
-    ].filter(Boolean).join(" + ")
+    )
   },
   {
     type: "hysteria2",
-    calculate: (proxy) => [
+    calculateHash: (proxy) => buildHash(
       proxy.server,
       proxy.port,
       proxy.password && `password=${proxy.password}`,
       proxy.tls && "tls",
       proxy.obfs && `obfs=${proxy.obfs}`,
       proxy['obfs-password'] && `obfs-password=${proxy['obfs-password']}`
-    ].filter(Boolean).join(" + ")
+    )
   }];
 
 function filterProxies(proxies, profileName) {
@@ -70,27 +86,28 @@ function filterProxies(proxies, profileName) {
     proxies = proxies.filter(proxy => !countries.some(item => proxy.name.includes(item)));
   }
 
-  proxies = proxies
-    .filter((proxy) => !proxy.name.includes("HK"))
-    .filter((proxy) => !unwantedProxyTypes.includes(proxy.type))
-    .filter((proxy) => proxy.type !== "vmess" || (proxy.type === "vmess" && proxy.uuid && proxy.uuid.length == 36))
-    .filter((proxy) => !isNaN(proxy.port))
-    .filter((proxy) => typeof proxy["skip-cert-verify"] !== "undefined" && proxy["skip-cert-verify"])
-    .filter(
-      (proxy) =>
-        !((proxy.type === "vless" || proxy.type === "vmess") && !proxy.tls)
-    )
-    .map(proxy => {
-      proxy.hash = null;
-      const hashableTypes = hashHandlers.map(handler => handler.type);
-      hashableTypes.includes(proxy.type);
-      if (hashableTypes.includes(proxy.type)) {
-        const handler = hashHandlers.find(handler => handler.type === proxy.type);
-        proxy.hash = handler.calculate(proxy);
-      }
-      return proxy;
-    });
-  // .apply hash handlers
+  proxies = proxies.filter(proxy => {
+    const generalConditionCheck = proxySettings.find(cond => cond.type === "general").filterConditions(proxy);
+    let typeSpecificConditionCheck = false;
+
+    const typeSpecificConditions = proxySettings.filter(settings => settings.type.includes(proxy.type) && settings.filterConditions);
+
+    if (typeSpecificConditions)
+      typeSpecificConditionCheck = typeSpecificConditions.every((setting) => setting.filterConditions(proxy));
+    else typeSpecificConditionCheck = true;
+
+    return generalConditionCheck && typeSpecificConditionCheck;
+  }).map(proxy => {
+    // .apply hash handlers
+    proxy.hash = null;
+    const hashableTypes = proxySettings.map(handler => handler.type);
+    hashableTypes.includes(proxy.type);
+    if (hashableTypes.includes(proxy.type)) {
+      const handler = proxySettings.find(handler => handler.type === proxy.type);
+      proxy.hash = handler.calculateHash(proxy);
+    }
+    return proxy;
+  });
 
   const uniqueProxies = [];
   const hashSet = new Set();
