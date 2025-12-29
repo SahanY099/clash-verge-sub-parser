@@ -51,8 +51,18 @@ const hashHandlers = [
       proxy.uuid,
       proxy.network || "tcp"
     ].filter(Boolean).join(" + ")
-  }
-];
+  },
+  {
+    type: "hysteria2",
+    calculate: (proxy) => [
+      proxy.server,
+      proxy.port,
+      proxy.password && `password=${proxy.password}`,
+      proxy.tls && "tls",
+      proxy.obfs && `obfs=${proxy.obfs}`,
+      proxy['obfs-password'] && `obfs-password=${proxy['obfs-password']}`
+    ].filter(Boolean).join(" + ")
+  }];
 
 function filterProxies(proxies, profileName) {
   if (profileName.includes("Mahdibland")) {
@@ -102,13 +112,14 @@ function filterProxies(proxies, profileName) {
 function updateProxy(proxy, i) {
   if (!proxy.name) proxy.name = `${proxy.server} - ${i}`;
 
-  if (proxy.type == "trojan" || proxy.type == "hysteria" || proxy.type == "hysteria2") proxy.sni = host;
+  if (proxy.type == "trojan" || proxy.type == "hysteria" || proxy.type == "hysteria2" || proxy.type == "http") proxy.sni = host;
   if (proxy.type == "vmess" || proxy.type == "vless") proxy.servername = host;
 
 
   if (proxy["h2-opts"]) proxy["h2-opts"] = {
     host: [host]
   };
+
 
   if (proxy["ws-opts"]) proxy["ws-opts"]["headers"] = {
     Host: host,
