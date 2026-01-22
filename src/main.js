@@ -1,4 +1,6 @@
-const host = "www.netflix.com";
+// define your host
+const host
+// const host = "www.netflix.com";
 // const host = "zoom.us";
 
 const removeSSProxies = true;
