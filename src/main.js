@@ -1,5 +1,5 @@
 // define your host
-const host
+const host = ''
 // const host = "www.netflix.com";
 // const host = "zoom.us";
 
@@ -140,14 +140,18 @@ function updateProxy(proxy, i) {
   };
 
 
-  if (proxy["ws-opts"]) proxy["ws-opts"]["headers"] = {
-    Host: host,
-  };
+  
+  if (proxy["ws-opts"]) {
+    let wsOpts = {}
+    
+    wsOpts.headers = { Host: host, }
+    wsOpts.path = proxy["ws-path"]
 
-  if (proxy["ws-path"]) proxy["ws-opts"] = {
-    path: proxy["ws-path"],
-    headers: { Host: host, }
-  };
+    if (proxy["ws-opts"]["v2ray-http-upgrade-fast-open"]) wsOpts["v2ray-http-upgrade"] = false
+
+    proxy["ws-opts"] = { ...proxy["ws-opts"], ...wsOpts }
+  }
+
 
   return proxy;
 }
