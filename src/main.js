@@ -1,5 +1,5 @@
 // define your host
-const host = ''
+const host = "";
 // const host = "www.netflix.com";
 // const host = "zoom.us";
 
@@ -11,7 +11,7 @@ const defaultGroupName = "DEFAULT";
 
 const rules = [
   "DOMAIN-SUFFIX,identitytoolkit.googleapis.com,DIRECT",
-  `MATCH,${defaultGroupName}`
+  `MATCH,${defaultGroupName}`,
 ];
 
 let unwantedProxyTypes = [];
@@ -19,12 +19,13 @@ function buildExcludeProxyTypeArray() {
   const excludeTypes = [];
   if (typeof removeSSProxies !== "undefined") excludeTypes.push("ss");
   if (typeof removeSSRProxies !== "undefined") excludeTypes.push("ssr");
-  if (typeof removeShadowsocksProxies !== "undefined") excludeTypes.push("shadowsocks");
+  if (typeof removeShadowsocksProxies !== "undefined")
+    excludeTypes.push("shadowsocks");
   return excludeTypes;
 }
 
 const buildHash = (...parts) =>
-  parts.filter(v => v !== undefined && v !== null).join(" + ");
+  parts.filter((v) => v !== undefined && v !== null).join(" + ");
 
 const proxySettings = [
   {
@@ -34,82 +35,109 @@ const proxySettings = [
       !proxy.name.includes("HK") &&
       !unwantedProxyTypes.includes(proxy.type) &&
       Number.isInteger(proxy.port) &&
-      proxy["skip-cert-verify"] === true
+      proxy["skip-cert-verify"] === true,
   },
   {
     type: "trojan",
-    calculateHash: (proxy) => buildHash(
-      proxy.server,
-      proxy.port,
-      proxy.password,
-      proxy.udp && "udp",
-      proxy.network || "tcp"
-    )
+    calculateHash: (proxy) =>
+      buildHash(
+        proxy.server,
+        proxy.port,
+        proxy.password,
+        proxy.udp && "udp",
+        proxy.network || "tcp",
+      ),
   },
   {
     type: "vless",
     filterConditions: (proxy) => proxy.tls,
-    calculateHash: (proxy) => buildHash(
-      proxy.server,
-      proxy.port,
-      proxy.udp && "udp",
-      proxy.uuid,
-      proxy.network || "tcp"
-    )
+    calculateHash: (proxy) =>
+      buildHash(
+        proxy.server,
+        proxy.port,
+        proxy.udp && "udp",
+        proxy.uuid,
+        proxy.network || "tcp",
+      ),
   },
   {
     type: "vmess",
     filterConditions: (proxy) =>
-      proxy.uuid && proxy.uuid.length === 36 &&
-      proxy.tls,
-    calculateHash: (proxy) => buildHash(
-      proxy.server,
-      proxy.port,
-      proxy.udp && "udp",
-      proxy.uuid,
-      proxy.network || "tcp"
-    )
+      proxy.uuid && proxy.uuid.length === 36 && proxy.tls,
+    calculateHash: (proxy) =>
+      buildHash(
+        proxy.server,
+        proxy.port,
+        proxy.udp && "udp",
+        proxy.uuid,
+        proxy.network || "tcp",
+      ),
   },
   {
     type: "hysteria2",
-    calculateHash: (proxy) => buildHash(
-      proxy.server,
-      proxy.port,
-      proxy.password && `password=${proxy.password}`,
-      proxy.tls && "tls",
-      proxy.obfs && `obfs=${proxy.obfs}`,
-      proxy['obfs-password'] && `obfs-password=${proxy['obfs-password']}`
-    )
-  }];
+    calculateHash: (proxy) =>
+      buildHash(
+        proxy.server,
+        proxy.port,
+        proxy.password && `password=${proxy.password}`,
+        proxy.tls && "tls",
+        proxy.obfs && `obfs=${proxy.obfs}`,
+        proxy["obfs-password"] && `obfs-password=${proxy["obfs-password"]}`,
+      ),
+  },
+];
 
 function filterProxies(proxies, profileName) {
   if (profileName.includes("Mahdibland")) {
-    const countries = ["CN", "🇷🇺RU", "🇳🇱NL", "🏁RELAY", "KR", "🇯🇵JP", "🇲🇾MY", "🇻🇳VN", "🇵🇭PH"];
-    proxies = proxies.filter(proxy => !countries.some(item => proxy.name.includes(item)));
+    const countries = [
+      "CN",
+      "🇷🇺RU",
+      "🇳🇱NL",
+      "🏁RELAY",
+      "KR",
+      "🇯🇵JP",
+      "🇲🇾MY",
+      "🇻🇳VN",
+      "🇵🇭PH",
+    ];
+    proxies = proxies.filter(
+      (proxy) => !countries.some((item) => proxy.name.includes(item)),
+    );
   }
 
-  proxies = proxies.filter(proxy => {
-    const generalConditionCheck = proxySettings.find(cond => cond.type === "general").filterConditions(proxy);
-    let typeSpecificConditionCheck = false;
+  proxies = proxies
+    .filter((proxy) => {
+      const generalConditionCheck = proxySettings
+        .find((cond) => cond.type === "general")
+        .filterConditions(proxy);
+      let typeSpecificConditionCheck = false;
 
-    const typeSpecificConditions = proxySettings.filter(settings => settings.type.includes(proxy.type) && settings.filterConditions);
+      const typeSpecificConditions = proxySettings.filter(
+        (settings) =>
+          settings.type.includes(proxy.type) && settings.filterConditions,
+      );
 
-    if (typeSpecificConditions)
-      typeSpecificConditionCheck = typeSpecificConditions.every((setting) => setting.filterConditions(proxy));
-    else typeSpecificConditionCheck = true;
+      if (typeSpecificConditions)
+        typeSpecificConditionCheck = typeSpecificConditions.every((setting) =>
+          setting.filterConditions(proxy),
+        );
+      else typeSpecificConditionCheck = true;
 
-    return generalConditionCheck && typeSpecificConditionCheck;
-  }).map(proxy => {
-    // .apply hash handlers
-    proxy.hash = null;
-    const hashableTypes = proxySettings.map(handler => handler.type);
-    hashableTypes.includes(proxy.type);
-    if (hashableTypes.includes(proxy.type)) {
-      const handler = proxySettings.find(handler => handler.type === proxy.type);
-      proxy.hash = handler.calculateHash(proxy);
-    }
-    return proxy;
-  });
+      return generalConditionCheck && typeSpecificConditionCheck;
+    })
+    .map((proxy) => {
+      // .apply hash handlers
+      proxy.hash = null;
+      const hashableTypes = proxySettings.map((handler) => handler.type);
+      hashableTypes.includes(proxy.type);
+      if (hashableTypes.includes(proxy.type)) {
+        const handler = proxySettings.find(
+          (handler) => handler.type === proxy.type,
+        );
+        proxy.hash = handler.calculateHash(proxy);
+      }
+      return proxy;
+    });
 
   const uniqueProxies = [];
   const hashSet = new Set();
@@ -125,52 +153,65 @@ function filterProxies(proxies, profileName) {
   }
 
   return uniqueProxies;
-
 }
 
 function updateProxy(proxy, i) {
   if (!proxy.name) proxy.name = `${proxy.server} - ${i}`;
 
-  if (proxy.type == "trojan" || proxy.type == "hysteria" || proxy.type == "hysteria2" || proxy.type == "http") proxy.sni = host;
+  if (
+    proxy.type == "trojan" ||
+    proxy.type == "hysteria" ||
+    proxy.type == "hysteria2" ||
+    proxy.type == "http"
+  )
+    proxy.sni = host;
   if (proxy.type == "vmess" || proxy.type == "vless") proxy.servername = host;
 
+  if (proxy["h2-opts"])
+    proxy["h2-opts"] = {
+      host: [host],
+    };
 
-  if (proxy["h2-opts"]) proxy["h2-opts"] = {
-    host: [host]
-  };
-
-
-  
   if (proxy["ws-opts"]) {
-    let wsOpts = {}
-    
-    wsOpts.headers = { Host: host, }
-    wsOpts.path = proxy["ws-path"]
+    let wsOpts = {};
 
-    if (proxy["ws-opts"]["v2ray-http-upgrade-fast-open"]) wsOpts["v2ray-http-upgrade"] = false
+    wsOpts.headers = { Host: host };
+    wsOpts.path = proxy["ws-path"];
 
-    proxy["ws-opts"] = { ...proxy["ws-opts"], ...wsOpts }
+    if (proxy["ws-opts"]["v2ray-http-upgrade-fast-open"])
+      wsOpts["v2ray-http-upgrade"] = false;
+
+    proxy["ws-opts"] = { ...proxy["ws-opts"], ...wsOpts };
   }
-
 
   return proxy;
 }
 
+function modityTestProxies(proxies) {
+  return proxies.forEach((proxy) => (proxy["skip-cert-verify"] = true));
+}
+
 export function main(config, profileName) {
   unwantedProxyTypes = buildExcludeProxyTypeArray();
-  const filteredProxies = filterProxies(config.proxies, profileName).map(updateProxy);
 
+  let proxies;
+  if (profileName.toLowerCase().includes("test")) {
+    proxies = modityTestProxies(config.proxies);
+  } else proxies = conifig.proxies;
+
+  const filteredProxies = filterProxies(config.proxies, profileName).map(
+    updateProxy,
+  );
 
   config.proxies = filteredProxies;
   config["proxy-groups"] = [
     {
       name: defaultGroupName,
       type: "select",
-      proxies: filteredProxies.map(p => p.name)
-    }
+      proxies: filteredProxies.map((p) => p.name),
+    },
   ];
   config.rules = rules;
-
 
   return config;
 }
